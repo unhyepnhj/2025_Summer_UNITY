@@ -1,7 +1,7 @@
 # 2025_Summer_UNITY
 Minecraft clone coding with UNITY - EDOC summer group study
 
-reports:
+
 
 week2 -> https://www.notion.so/2-2411cca6566b80a592c2e5e74d6f2584?source=copy_link
 
