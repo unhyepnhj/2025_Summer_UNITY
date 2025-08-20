@@ -5,11 +5,14 @@ public class BlockManager : MonoBehaviour
     [Header("블록 prefab 목록 (0:Grass, 1:Dirt, 2:Stone, 3:Sand)")]
     public GameObject[] blockPrefabs;
 
+    [Header("블록별 아이템 prefab 목록")]
+    public GameObject[] blockPickupPrefabs; // 0:Grass item prefab, 1:Dirt item prefab ...
+
     private int selectedIndex = 0;
 
     [Header("설정")]
     public float maxDistance = 5f;
-    public LayerMask blockLayer; // Inspector에서 "Block" 레이어를 체크해 주세요.
+    public LayerMask blockLayer; // Inspector에서 "Block" 레이어 체크
 
     void Update()
     {
@@ -42,23 +45,43 @@ public class BlockManager : MonoBehaviour
                             LayerMask.GetMask("Block")))
         {
             GameObject hitObj = hit.collider.gameObject;
-            Destroy(hitObj);
-
             Vector3 spawnPos = hitObj.transform.position + Vector3.up * 0.6f;
 
-            int dropId = 0;
+            // 블록 prefab 이름으로 아이템 ID 찾기
+            int blockIndex = -1;
+            string baseName = hitObj.name.Replace("(Clone)", "").Trim();
             for (int i = 0; i < blockPrefabs.Length; i++)
-                if (blockPrefabs[i].name == hitObj.name.Replace("(Clone)", "").Trim())
+            {
+                if (blockPrefabs[i].name == baseName)
                 {
-                    if (blockDropItemId != null && i < blockDropItemId.Length) dropId = blockDropItemId[i];
+                    blockIndex = i;
                     break;
                 }
+            }
 
-            if (pickupPrefab != null)
+            Destroy(hitObj);    // 블록 파괴
+
+            // 드롭할 프리팹 선택: 우선 blockPickupPrefabs, 없으면 기존 pickupPrefab 사용
+            GameObject chosenPickupPrefab = null;
+            if (blockIndex >= 0 && blockPickupPrefabs != null && blockIndex < blockPickupPrefabs.Length)
+                chosenPickupPrefab = blockPickupPrefabs[blockIndex];
+
+            if (chosenPickupPrefab == null)
+                chosenPickupPrefab = pickupPrefab; // fallback
+
+            if (chosenPickupPrefab != null)
             {
-                GameObject p = Instantiate(pickupPrefab, spawnPos, Quaternion.identity);
+                GameObject p = Instantiate(chosenPickupPrefab, spawnPos, Quaternion.identity);
                 var ip = p.GetComponent<ItemPickup>();
-                if (ip != null) { ip.itemId = dropId; ip.count = 1; }
+                if (ip != null)
+                {
+                    // 기존에 사용하던 blockDropItemId 로 itemId 설정을 유지하려면
+                    int dropId = 0;
+                    if (blockIndex >= 0 && blockDropItemId != null && blockIndex < blockDropItemId.Length)
+                        dropId = blockDropItemId[blockIndex];
+                    ip.itemId = dropId;
+                    ip.count = 1;
+                }
             }
         }
     }
